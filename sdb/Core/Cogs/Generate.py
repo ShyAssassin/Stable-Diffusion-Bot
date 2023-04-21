@@ -21,20 +21,24 @@ class Generate(commands.Cog):
         self.pipeline.to("cuda")
 
 
+    # FIXME: when too many people use this command it will error out, because we cant defer fast enough since generating the image is blocking
+    # if we dont defer 3 seconds after the command is sent discord will error out
+    # could be fixed by using a queue system that is executed in the background on a worker thread
     @commands.slash_command(name="generate", description="generate a image using provided promts")
     async def Template(self, interaction: disnake.CommandInteraction, prompt: str):
         await interaction.response.defer(ephemeral=False)
         image = self.pipeline(
             prompt,
-            # self.guidance_scale,
             width=self.width,
             height=self.height,
+            guidance_scale=self.guidance_scale,
             negative_prompt=self.negtive_prompts,
             num_inference_steps=self.sample_steps,
             num_images_per_prompt=self.images_per_promt,
         ).images
-        image[0].save("temp.png", format="PNG")
-        await interaction.edit_original_message(files=[disnake.File("temp.png", filename="image.png")])
+        # FIXME: we shouldnt need to save the image to disk, we should be able to just send it as a byte array
+        image[0].save(f"cache/{interaction.id}.png", format="PNG")
+        await interaction.followup.send(files=[disnake.File(f"cache/{interaction.id}.png", filename=f"{interaction.id}.png")])
 
     @commands.command(name="generate")
     async def TemplateCTX(self, ctx: commands.Context):
