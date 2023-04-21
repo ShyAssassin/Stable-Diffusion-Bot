@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "stable-defusion-bot"
+version = "0.1.0"
+description = ""
+authors = ["ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "stable_defusion_bot"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+disnake = "^2.8.1"
+python-dotenv = "^1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
