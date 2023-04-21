@@ -10,8 +10,20 @@ packages = [{include = "stable_defusion_bot"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 disnake = "^2.8.1"
+torch = { version = "2.0.0", source= "torch" }
 python-dotenv = "^1.0.0"
+diffusers = "^0.15.1"
+accelerate = "^0.18.0"
+transformers = "^4.28.1"
 
+[[tool.poetry.source]]
+name = "torch"
+url = "https://download.pytorch.org/whl/cu117"
+secondary = true
+default = false
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
 
 [build-system]
 requires = ["poetry-core"]
