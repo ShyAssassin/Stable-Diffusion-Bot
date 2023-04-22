@@ -5,7 +5,7 @@ A discord bot that allows users to request stable defusion images
 
 ### Prerequisites
 * Python 3.10 or above
-* Cuda 3.17 or above
+* Cuda 11.7 or above
 * [poetry](https://python-poetry.org/)
 
 ```bash
