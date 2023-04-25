@@ -1,5 +1,5 @@
-# Stable-Defusion-Bot
-A discord bot that allows users to request stable defusion images
+# Stable-Diffusion-Bot
+A discord bot that allows users to request stable diffusion images
 
 ## Installation
 
@@ -9,8 +9,8 @@ A discord bot that allows users to request stable defusion images
 * [poetry](https://python-poetry.org/)
 
 ```bash
-git clone https://github.com/ShyAssassin/Stable-Defusion-Bot.git
-cd Stable-Defusion-Bot
+git clone https://github.com/ShyAssassin/Stable-Diffusion-Bot.git
+cd Stable-Diffusion-Bot
 cp .env.example .env
 poetry install
 ```
