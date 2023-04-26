@@ -5,6 +5,7 @@
 # temp files
 sdb/temp.png
 sdb/cache/
+sdb/config.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
