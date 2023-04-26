@@ -4,7 +4,7 @@ import os
 # so we just change directory to sdb if we arent already in it
 if os.pardir != "sdb":
     os.chdir("sdb")
-from Core.Bot import SDB
+from Core.bot import SDB
 from dotenv import load_dotenv
 load_dotenv()
 

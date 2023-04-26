@@ -1,1 +1,2 @@
-from .Bot import SDB
+from .bot import SDB
+from .collage import make_collage

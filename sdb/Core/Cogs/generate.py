@@ -2,8 +2,8 @@ import disnake
 from disnake.ext import commands
 from diffusers import StableDiffusionPipeline
 import torch
-import os
-from Core import SDB
+from Core import make_collage, SDB
+import io
 
 
 class Generate(commands.Cog):
@@ -12,14 +12,13 @@ class Generate(commands.Cog):
         # TODO: make these configurable with a config file or slash command
         self.width = 512
         self.height = 512
-        self.sample_steps = 65
+        self.sample_steps = 50
         self.guidance_scale = 7
         self.images_per_promt = 1
         self.negtive_prompts = "(worst quality:1.4), (low quality:1.4), (monochrome:1.1)"
-        self.model_id = "andite/anything-v4.0"
-        # self.model_id = "runwayml/stable-diffusion-v1-5"
+        self.model_id = "runwayml/stable-diffusion-v1-5"
         self.pipeline = StableDiffusionPipeline.from_pretrained(self.model_id, torch_dtype=torch.float16)
-        self.pipeline.safety_checker = lambda images, clip_input: (images, False)
+        self.pipeline.safety_checker = lambda images, clip_input: (images, False) # temporarily disable safety checker so we can manually run it later
         self.pipeline.to("cuda")
 
 
@@ -29,7 +28,7 @@ class Generate(commands.Cog):
     @commands.slash_command(name="generate", description="generate a image using provided promts")
     async def Generate(self, interaction: disnake.CommandInteraction, prompt: str):
         await interaction.response.defer(ephemeral=False)
-        image = self.pipeline(
+        images = self.pipeline(
             prompt,
             width=self.width,
             height=self.height,
@@ -38,14 +37,19 @@ class Generate(commands.Cog):
             num_inference_steps=self.sample_steps,
             num_images_per_prompt=self.images_per_promt,
         ).images
-        # FIXME: we shouldnt need to save the image to disk, we should be able to just send it as a byte array
-        try:
-            os.mkdir(f"cache/{interaction.guild_id}")
-        except FileExistsError:
-            pass
-        finally:
-            image[0].save(f"cache/{interaction.guild_id}/{interaction.id}.png", format="PNG")
-            await interaction.followup.send(files=[disnake.File(f"cache/{interaction.guild_id}/{interaction.id}.png", filename=f"{interaction.id}.png")])
+        
+        if len(images) > 1:
+            # TODO: dont hardcode this
+            image = make_collage(images, 3, 3)
+        else:
+            image = images[0]
+
+
+        with io.BytesIO() as image_binary:
+            image.save(image_binary, 'PNG')
+            image_binary.seek(0)
+            await interaction.edit_original_response(file=disnake.File(fp=image_binary, filename=f"{interaction.id}.png"))
+            
 
     @commands.command(name="generate")
     async def GenerateCTX(self, ctx: commands.Context):
