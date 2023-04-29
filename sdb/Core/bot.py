@@ -2,13 +2,17 @@ import os
 import disnake
 from disnake.ext import commands
 from typing import Union
+from .config import SDBConfig
 
 
 class SDB(commands.Bot):
     def __init__(self, **options):
         self.Ready: bool = False
+        self.config: SDBConfig = SDBConfig()
+        self.config.load()
         # NOTE: If folder structure ever changed update this
         self.CogPath: str = os.path.join("Core", "Cogs")
+        # fmt: off
         super().__init__(
             reload=True,
             help_command=None,
@@ -17,6 +21,7 @@ class SDB(commands.Bot):
             intents=disnake.Intents.all(),
             **options
         )
+        # fmt: on
 
     async def on_ready(self):
         # on_ready is called more than once sometimes
