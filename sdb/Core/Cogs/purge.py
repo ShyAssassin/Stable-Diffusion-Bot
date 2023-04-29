@@ -12,22 +12,6 @@ class Purge(commands.Cog):
     def is_bot(self, message):
         return message.author == self.bot.user
 
-    def is_failed_command(self, message):
-        return (
-            message.interaction is not None and message.interaction.response is None or message.interaction.response.is_done() is False
-        )
-
-    def is_slash_command(m):
-        return isinstance(m, disnake.Message) and m.type == disnake.MessageType.application_command
-
-    @commands.slash_command(name="purge-failed", description="Purge all failed slash command responses from the current channel")
-    @commands.check_any(commands.is_owner(), commands.has_permissions(administrator=True, manage_messages=True))
-    async def PurgeFailed(self, interaction: disnake.CommandInteraction):
-        await interaction.response.defer(ephemeral=True)
-        await interaction.channel.purge(limit=None, check=self.is_bot)
-        deleted = await interaction.channel.purge(check=lambda m: self.is_slash_command(m) and self.is_failed_command(m))
-        await interaction.edit_original_message(f"Deleted {len(deleted)} failed slash commands.")
-
     @commands.slash_command(name="purge", description="Purge a specified amount of messages from the current channel")
     @commands.check_any(commands.is_owner(), commands.has_permissions(administrator=True, manage_messages=True))
     async def Purge(self, interaction: disnake.CommandInteraction, amount: int):
