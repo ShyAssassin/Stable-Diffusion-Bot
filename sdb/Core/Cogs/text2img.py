@@ -3,6 +3,7 @@ from disnake.ext import commands
 from diffusers import StableDiffusionPipeline
 import torch
 from Core import make_collage, SDB
+import math
 import io
 
 
@@ -20,7 +21,7 @@ class Text2Img(commands.Cog):
         self.images_per_prompt = self.config.images_per_prompt
         self.negative_prompts = ", ".join(self.config.negative_prompts)
         self.base_prompts = ", ".join(self.config.base_prompts)
-        self.banned_prompts = ", ".join(self.config.banned_prompts)
+        self.banned_prompts = self.config.banned_prompts
         # setup pipeline
         self.pipeline = StableDiffusionPipeline.from_pretrained(self.model_id, torch_dtype=torch.float16)
         # we need to do this because it isn't possible to enable / disable the safety checker in the pipeline constructor
@@ -39,13 +40,15 @@ class Text2Img(commands.Cog):
     @commands.slash_command(name="generate", description="generate a image using provided prompts")
     async def Generate(self, interaction: disnake.CommandInteraction, prompt: str):
         await interaction.response.defer(ephemeral=False)
+
         prompt = f"{self.base_prompts}, {prompt}"
 
         # search for banned prompts
-        for banned_prompt in self.banned_prompts:
-            if banned_prompt in prompt:
-                await interaction.edit_original_message(content=f"Error: banned prompt '{banned_prompt}' found in input prompt")
-                return
+        if self.banned_prompts != "":
+            for banned_prompt in self.banned_prompts:
+                if banned_prompt in prompt:
+                    await interaction.edit_original_message(content=f"Error: banned prompt '{banned_prompt}' found in input")
+                    return
 
         images = self.pipeline(
             prompt,
@@ -58,8 +61,13 @@ class Text2Img(commands.Cog):
         ).images
 
         if len(images) > 1:
-            # TODO: dont hardcode this
-            image = make_collage(images, 3, 3)
+            if self.config.stack_horizontally:
+                cols = math.ceil(math.sqrt(len(images)))
+                rows =  math.ceil(len(images) / cols)
+            else:
+                rows = math.ceil(math.sqrt(len(images))) 
+                cols = math.ceil(len(images) / rows)
+            image = make_collage(images, rows, cols)
         else:
             image = images[0]
 
