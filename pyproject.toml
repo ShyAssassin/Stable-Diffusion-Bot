@@ -5,7 +5,6 @@ description = ""
 authors = ["ShyAssassin <49711232+ShyAssassin@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "stable_defusion_bot"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
