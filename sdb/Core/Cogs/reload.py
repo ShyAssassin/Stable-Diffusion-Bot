@@ -9,7 +9,7 @@ class Reload(commands.Cog):
         self.bot: SDB = bot
 
     @commands.slash_command(name="reload", description="reload all pipelines with the current config")
-    @commands.check_any(commands.is_owner(), commands.has_permissions(administrator=True))
+    @commands.check_any(commands.is_owner())  # should probably add a config option for trusted users / admins to use this
     async def Reload(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer(ephemeral=False)
         await interaction.edit_original_message(content="Reloading pipelines, this may take a while...")
@@ -19,9 +19,10 @@ class Reload(commands.Cog):
             if not cog.startswith("_") and cog.endswith(".py") and cog != "reload.py":
                 CurrentCogPath = str(os.path.join(self.bot.CogPath, cog))
                 CurrentCogModule = CurrentCogPath.replace("\\", ".")[:-3]
-                self.bot.reload_extension(CurrentCogModule)
                 print(f"Reloading Extension: sdb.{CurrentCogModule}")
+                self.bot.reload_extension(CurrentCogModule)
         await interaction.edit_original_message(content="All pipelines have been reloaded!")
+        print("All pipelines have been reloaded!")
 
     @commands.command(name="reload")
     async def ReloadCTX(self, ctx: commands.Context):
