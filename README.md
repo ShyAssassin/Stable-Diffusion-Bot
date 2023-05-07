@@ -1,10 +1,10 @@
 # Stable-Diffusion-Bot
 ![Example](./.github/assets/header.png)
-<center>
+<p align="center">
 <image src="https://img.shields.io/github/license/ShyAssassin/Stable-Diffusion-Bot"/> 
 <image src="https://img.shields.io/github/issues/ShyAssassin/Stable-Diffusion-Bot"/> 
 <image src="https://img.shields.io/github/stars/ShyAssassin/Stable-Diffusion-Bot?style=social"/> 
-</center>
+</p>
 
 ## Installation
 
