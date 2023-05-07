@@ -1,5 +1,5 @@
 # Stable-Diffusion-Bot
-A discord bot that allows users to request stable diffusion images
+![Example](./.github/assets/header.png)
 
 ## Installation
 
