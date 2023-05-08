@@ -5,6 +5,7 @@ import torch
 from Core import make_collage, SDB
 import math
 import io
+import os
 import asyncio
 
 
@@ -69,7 +70,7 @@ class Text2Img(commands.Cog):
         # search for banned prompts
         if self.banned_prompts != "":
             for banned_prompt in self.banned_prompts:
-                if banned_prompt in prompt:
+                if banned_prompt in prompt.lower():
                     await interaction.edit_original_message(content=f"Error: banned prompt '{banned_prompt}' found in input")
                     return
 
@@ -77,8 +78,8 @@ class Text2Img(commands.Cog):
         images = []
         while True:
             if self.pipelines != []:
-                # generate images in a asyncio thread so we don't block the event loop
                 await interaction.edit_original_message(content="Generating...")
+                # generate images in a asyncio thread so we don't block the event loop
                 await asyncio.to_thread(self.generate_images, prompt, images)
                 # sometimes two different threads can try to pop the same pipeline from the list
                 # this can cause a index error, so we just try again
@@ -86,7 +87,7 @@ class Text2Img(commands.Cog):
                     break
             else:
                 await interaction.edit_original_message(
-                    content=f"Waiting for free pipeline... (this can take a while)\nQueue size: {self.queue_size}"
+                    content=f"Waiting for a free pipeline... (this can take a while)\nQueue size: {self.queue_size}"
                 )
                 await asyncio.sleep(5)
 
@@ -102,6 +103,7 @@ class Text2Img(commands.Cog):
             image = images[0]
 
         if self.base_config.save_images:
+            os.makedirs(f"cache/{interaction.guild_id}", exist_ok=True)
             image.save(f"cache/{interaction.guild_id}/{interaction.id}.png")
 
         with io.BytesIO() as image_binary:
