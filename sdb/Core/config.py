@@ -1,6 +1,6 @@
 import json
 import os
-from pydantic import BaseModel, ValidationError, validate_model
+from pydantic import BaseModel, ValidationError, validate_model, validator
 
 
 class DiffusionPipelineConfig(BaseModel):
@@ -33,6 +33,35 @@ class DiffusionPipelineConfig(BaseModel):
     # we dont need to join this because we are just checking if the prompt is in the list
     banned_prompts: list[str] = []
 
+    @validator("images_per_prompt")
+    def prompts_per_prompt_valid(cls, v):
+        if v < 1:
+            raise ValueError("Images per prompt must be greater than 0")
+        return v
+    
+    @validator("current_model")
+    def model_valid(cls, v):
+        if v == "":
+            raise ValueError("A valid model must be defined")
+        return v
+    
+    @validator("batch_size")
+    def batchsize_valid(cls, v):
+        if v < 1:
+            raise ValueError("Batch size must be greater than 0")
+        return v
+    
+    @validator("device")
+    def device_valid(cls, v):
+        if v not in ["cuda", "cpu"]:
+            raise ValueError("Device must be either cuda or cpu")
+        return v
+
+    @validator("sample_steps")
+    def sample_steps_valid(cls, v):
+        if v < 1:
+            raise ValueError("Sample steps must be greater than 0")
+        return v
 
 class SDBConfig(BaseModel):
     version: int = 2
@@ -50,16 +79,12 @@ class SDBConfig(BaseModel):
             self.save(file)
         else:
             try:
-                # since we are loading a full config it is fine for us to just update the entire dict because we assume
-                # that the data is valid, if there are extra or missing fields in the config by default pydantic will
-                # fill them in with default values.
-                # if we want to "update" parts of the config at runtime we should use `setattr` so we can retain
-                # previous values and only update values that have been "requested" to be changed
                 self.__dict__.update(self.parse_file(file))
                 self.validate(self)
                 self.save(file)
-            except (ValidationError, Exception):
-                print("Invalid Data found in config, replacing with default values")
+            except (ValidationError, Exception) as e:
+                print(f"Invalid Data found in config.json please fix all config issues before continuing \n {e}")
+                exit(1)
 
     def update(self, data) -> None:
         try:
