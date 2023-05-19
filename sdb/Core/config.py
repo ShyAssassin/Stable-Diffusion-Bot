@@ -3,14 +3,9 @@ import os
 from pydantic import BaseModel, ValidationError, validate_model, validator
 
 
-class DiffusionPipelineConfig(BaseModel):
+class Text2ImgConfig(BaseModel):
     device: str = "cuda"
     current_model: str = "andite/anything-v4.0"
-    available_models: list[str] = [
-        "andite/anything-v4.0",
-        "CompVis/stable-diffusion-v1-4",
-        "runwayml/stable-diffusion-v1-5",
-    ]
     width: int = 512
     height: int = 512
     batch_size: int = 3
@@ -67,7 +62,12 @@ class SDBConfig(BaseModel):
     version: int = 2
     debug: bool = False
     save_images: bool = False
-    DiffusionPipeline: DiffusionPipelineConfig = DiffusionPipelineConfig()
+    available_models: list[str] = [
+        "andite/anything-v4.0",
+        "CompVis/stable-diffusion-v1-4",
+        "runwayml/stable-diffusion-v1-5",
+    ]
+    Text2Img: Text2ImgConfig = Text2ImgConfig()
 
     def save(self, file: str = "config.json"):
         with open(file, "w") as f:

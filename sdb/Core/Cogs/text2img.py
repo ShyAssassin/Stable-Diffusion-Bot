@@ -2,7 +2,9 @@ import disnake
 from disnake.ext import commands
 from diffusers import StableDiffusionPipeline
 import torch
-from Core import make_collage, SDB
+from typing import Optional
+import random
+from Core import make_collage, SDB, Text2ImgConfig, SDBConfig
 import math
 import io
 import os
@@ -11,9 +13,9 @@ import asyncio
 
 class Text2Img(commands.Cog):
     def __init__(self, bot: SDB):
-        self.bot = bot
-        self.base_config = self.bot.config
-        self.config = self.base_config.DiffusionPipeline
+        self.bot: SDB = bot
+        self.base_config: SDBConfig = self.bot.config
+        self.config: Text2ImgConfig = self.base_config.Text2Img
         # config stuff
         self.model_id = self.config.current_model
         self.width = self.config.width
@@ -36,23 +38,25 @@ class Text2Img(commands.Cog):
             pipeline.to(self.config.device)
             self.pipelines.append(pipeline)
 
-    def generate_images(self, prompt, images):
+    def generate_images(self, prompt, images, seed):
         try:
             pipeline = self.pipelines.pop()
-        except IndexError:
+            generator = torch.Generator(device=self.config.device).manual_seed(seed)
+            images += pipeline(
+                prompt,
+                generator=generator,
+                width=self.width,
+                height=self.height,
+                guidance_scale=self.guidance_scale,
+                negative_prompt=self.negative_prompts,
+                num_inference_steps=self.sample_steps,
+                num_images_per_prompt=self.images_per_prompt,
+            ).images
+            # after we are done with the pipeline we can add it back to the free pipelines
+            self.pipelines.append(pipeline)
+            self.queue_size -= 1
+        except IndexError: # two threads tried to pop the same pipeline
             return
-        images += pipeline(
-            prompt,
-            width=self.width,
-            height=self.height,
-            guidance_scale=self.guidance_scale,
-            negative_prompt=self.negative_prompts,
-            num_inference_steps=self.sample_steps,
-            num_images_per_prompt=self.images_per_prompt,
-        ).images
-        # after we are done with the pipeline we can add it back to the free pipelines
-        self.pipelines.append(pipeline)
-        self.queue_size -= 1
 
     def safety_checker(self, images, clip_input):
         # TODO: implement this
@@ -61,7 +65,7 @@ class Text2Img(commands.Cog):
         return images, False
 
     @commands.slash_command(name="generate", description="generate a image using provided prompts")
-    async def Generate(self, interaction: disnake.CommandInteraction, prompt: str):
+    async def Generate(self, interaction: disnake.CommandInteraction, prompt: str, seed: Optional[int] = None):
         await interaction.response.defer(ephemeral=False)
  
         if self.base_prompts != "":
@@ -76,11 +80,14 @@ class Text2Img(commands.Cog):
 
         self.queue_size += 1
         images = []
+        if seed is None:
+            # use a random 32 bit seed if no seed is provided
+            seed = random.randint(0, 2 ** 32)
         while True:
             if self.pipelines != []:
                 await interaction.edit_original_message(content="Generating...")
                 # generate images in a asyncio thread so we don't block the event loop
-                await asyncio.to_thread(self.generate_images, prompt, images)
+                await asyncio.to_thread(self.generate_images, prompt, images, seed)
                 # sometimes two different threads can try to pop the same pipeline from the list
                 # this can cause a index error, so we just try again
                 if len(images) > 0:
@@ -89,6 +96,8 @@ class Text2Img(commands.Cog):
                 await interaction.edit_original_message(
                     content=f"Waiting for a free pipeline... (this can take a while)\nQueue size: {self.queue_size}"
                 )
+                # wait 5 seconds before trying again, 
+                # if we don't do this we will just softlock the bot because we are blocking the event loop
                 await asyncio.sleep(5)
 
         if len(images) > 1:
@@ -107,9 +116,13 @@ class Text2Img(commands.Cog):
             image.save(f"cache/{interaction.guild_id}/{interaction.id}.png")
 
         with io.BytesIO() as image_binary:
+            if self.base_config.debug:
+                content = f"Seed: {seed}\nPrompt: {prompt}"
+            else:
+                content = ""
             image.save(image_binary, "PNG")
             image_binary.seek(0)
-            await interaction.edit_original_response(content="", file=disnake.File(fp=image_binary, filename=f"{interaction.id}.png"))
+            await interaction.edit_original_response(content=f"{content}", file=disnake.File(fp=image_binary, filename=f"{interaction.id}.png"))
 
     @commands.command(name="generate")
     async def GenerateCTX(self, ctx: commands.Context):
