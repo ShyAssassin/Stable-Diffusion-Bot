@@ -16,7 +16,7 @@ class SDB(commands.Bot):
         super().__init__(
             reload=True,
             help_command=None,
-            command_prefix="*",
+            command_prefix=self.config.command_prefix,
             case_insensitive=True,
             intents=disnake.Intents.all(),
             **options
@@ -33,6 +33,7 @@ class SDB(commands.Bot):
             for cog in os.listdir(self.CogPath):
                 if not cog.startswith("_") and cog.endswith(".py"):
                     CurrentCogPath = str(os.path.join(self.CogPath, cog))
+                    # TODO: this doesn't work on linux because linux uses / instead of \
                     CurrentCogModule = CurrentCogPath.replace("\\", ".")[:-3]
                     self.load_extension(CurrentCogModule)
                     print(f"Loaded Extension: sdb.{CurrentCogModule}")

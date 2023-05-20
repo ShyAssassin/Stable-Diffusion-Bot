@@ -33,19 +33,19 @@ class Text2ImgConfig(BaseModel):
         if v < 1:
             raise ValueError("Images per prompt must be greater than 0")
         return v
-    
+
     @validator("current_model")
     def model_valid(cls, v):
         if v == "":
             raise ValueError("A valid model must be defined")
         return v
-    
+
     @validator("batch_size")
     def batchsize_valid(cls, v):
         if v < 1:
             raise ValueError("Batch size must be greater than 0")
         return v
-    
+
     @validator("device")
     def device_valid(cls, v):
         if v not in ["cuda", "cpu"]:
@@ -58,10 +58,12 @@ class Text2ImgConfig(BaseModel):
             raise ValueError("Sample steps must be greater than 0")
         return v
 
+
 class SDBConfig(BaseModel):
     version: int = 2
     debug: bool = False
     save_images: bool = False
+    command_prefix: str = "*"
     available_models: list[str] = [
         "andite/anything-v4.0",
         "CompVis/stable-diffusion-v1-4",
