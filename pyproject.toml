@@ -15,6 +15,7 @@ diffusers = "^0.15.1"
 accelerate = "^0.18.0"
 transformers = "^4.28.1"
 pydantic = "^1.10.7"
+huggingface-hub = "^0.14.1"
 
 [[tool.poetry.source]]
 name = "torch"
