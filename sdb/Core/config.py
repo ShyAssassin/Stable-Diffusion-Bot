@@ -6,6 +6,8 @@ from pydantic import BaseModel, ValidationError, validate_model, validator
 class Text2ImgConfig(BaseModel):
     device: str = "cuda"
     current_model: str = "andite/anything-v4.0"
+    custom_pipeline: str = "lpw_stable_diffusion"
+    custom_pipeline_revision: str = "0.15.1"
     width: int = 512
     height: int = 512
     batch_size: int = 3
@@ -18,9 +20,8 @@ class Text2ImgConfig(BaseModel):
     # we use a list here because it is easier to work with when in json format
     base_prompts: list[str] = []
     negative_prompts: list[str] = [
-        "(worst quality:1.4)",
-        "(low quality:1.4)",
-        "(monochrome:1.1)",
+        "low quality",
+        "monochrome",
         "extra limbs",
         "mutation",
         "mutated",

@@ -1,8 +1,7 @@
 import disnake
 from disnake.ext import commands
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 import torch
-from typing import Optional
 import random
 from Core import make_collage, SDB, Text2ImgConfig, SDBConfig
 import math
@@ -29,16 +28,28 @@ class Text2Img(commands.Cog):
         self.banned_prompts = self.config.banned_prompts
         # setup pipelines
         self.pipelines = []
-        # god, forgive me for this
         self.queue_size = 0
         for _ in range(self.batch_size):
-            pipeline = StableDiffusionPipeline.from_pretrained(self.model_id, torch_dtype=torch.float16)
+            pipeline = StableDiffusionPipeline.from_pretrained(
+                pretrained_model_name_or_path=self.model_id,
+                torch_dtype=torch.float16,
+                resume_download=True,
+                custom_pipeline=self.config.custom_pipeline,
+                custom_revision=self.config.custom_pipeline_revision,
+            )
             pipeline.safety_checker = self.safety_checker
-            # we need to do this because it isn't possible to enable / disable the safety checker in the pipeline constructor
+            # we set the scheduler to DPM++ because it is faster and better than the dedault scheduler PNDM
+            pipeline.scheduler = DPMSolverMultistepScheduler.from_config(pipeline.scheduler.config, use_karras_sigmas=False)
             pipeline.to(self.config.device)
             self.pipelines.append(pipeline)
 
-    def generate_images(self, prompt, images, seed):
+    def safety_checker(self, images, clip_input):
+        # TODO: implement this
+        if self.config.safety_checker:
+            print("!!! Safety Checker is currently not implemented !!!")
+        return images, False
+
+    def generate_images(self, prompt, negative_prompt, images, seed):
         try:
             pipeline = self.pipelines.pop()
             generator = torch.Generator(device=self.config.device).manual_seed(seed)
@@ -48,28 +59,29 @@ class Text2Img(commands.Cog):
                 width=self.width,
                 height=self.height,
                 guidance_scale=self.guidance_scale,
-                negative_prompt=self.negative_prompts,
+                negative_prompt=negative_prompt,
                 num_inference_steps=self.sample_steps,
                 num_images_per_prompt=self.images_per_prompt,
             ).images
-            # after we are done with the pipeline we can add it back to the free pipelines
             self.pipelines.append(pipeline)
             self.queue_size -= 1
-        except IndexError: # two threads tried to pop the same pipeline
+        except IndexError:  # two threads tried to pop the same pipeline
             return
 
-    def safety_checker(self, images, clip_input):
-        # TODO: implement this
-        if self.config.safety_checker:
-            print("!!! Safety Checker is currently not implemented !!!")
-        return images, False
-
     @commands.slash_command(name="generate", description="generate a image using provided prompts")
-    async def Generate(self, interaction: disnake.CommandInteraction, prompt: str, seed: Optional[int] = None):
+    async def Generate(self, interaction: disnake.CommandInteraction, prompt: str, negative_prompt: str = None, seed: int = None):
         await interaction.response.defer(ephemeral=False)
- 
+
+        # if we have a base prompt we should add it to the provided prompt
         if self.base_prompts != "":
             prompt = f"{self.base_prompts}, {prompt}"
+
+        # if the user provided negative prompts we should add them to the list of negative prompts
+        # if the user didn't provide any negative prompts we should just use the default negative prompts
+        if negative_prompt is not None and self.negative_prompts != "":
+            negative_prompt = f"{self.negative_prompts}, {negative_prompt}"
+        elif self.negative_prompts != "":
+            negative_prompt = self.negative_prompts
 
         # search for banned prompts
         if self.banned_prompts != "":
@@ -79,15 +91,17 @@ class Text2Img(commands.Cog):
                     return
 
         self.queue_size += 1
-        images = []
-        if seed is None:
-            # use a random 32 bit seed if no seed is provided
-            seed = random.randint(0, 2 ** 32)
         while True:
             if self.pipelines != []:
                 await interaction.edit_original_message(content="Generating...")
+
+                if seed is None:  # probably shouldn't regenerate the seed every time we fail to get a pipeline
+                    seed = random.randint(0, 2**32)  # should we use 64 bit seeds?
+
                 # generate images in a asyncio thread so we don't block the event loop
-                await asyncio.to_thread(self.generate_images, prompt, images, seed)
+                images = []
+                await asyncio.to_thread(self.generate_images, prompt, negative_prompt, images, seed)
+
                 # sometimes two different threads can try to pop the same pipeline from the list
                 # this can cause a index error, so we just try again
                 if len(images) > 0:
@@ -96,8 +110,6 @@ class Text2Img(commands.Cog):
                 await interaction.edit_original_message(
                     content=f"Waiting for a free pipeline... (this can take a while)\nQueue size: {self.queue_size}"
                 )
-                # wait 5 seconds before trying again, 
-                # if we don't do this we will just softlock the bot because we are blocking the event loop
                 await asyncio.sleep(5)
 
         if len(images) > 1:
@@ -116,13 +128,32 @@ class Text2Img(commands.Cog):
             image.save(f"cache/{interaction.guild_id}/{interaction.id}.png")
 
         with io.BytesIO() as image_binary:
-            if self.base_config.debug:
-                content = f"Seed: {seed}\nPrompt: {prompt}"
-            else:
-                content = ""
             image.save(image_binary, "PNG")
             image_binary.seek(0)
-            await interaction.edit_original_response(content=f"{content}", file=disnake.File(fp=image_binary, filename=f"{interaction.id}.png"))
+            image_file = disnake.File(fp=image_binary, filename=f"{interaction.id}.png")
+            if self.base_config.debug:
+                embed = disnake.Embed.from_dict(
+                    {
+                        "title": "Debug Info",
+                        "color": 0xFF00AA,
+                        "timestamp": interaction.created_at.isoformat(),
+                        "fields": [
+                            {"name": "Model", "value": f"{self.model_id}", "inline": False},
+                            {"name": "Seed", "value": f"{seed}", "inline": True},
+                            {"name": "Sample Steps", "value": f"{self.sample_steps}", "inline": True},
+                            {"name": "Guidance Scale", "value": f"{self.guidance_scale}", "inline": True},
+                            {"name": "Batch Size", "value": f"{self.batch_size}", "inline": True},
+                            {"name": "IPP", "value": f"{self.images_per_prompt}", "inline": True},
+                            {"name": "Device", "value": f"{self.config.device}", "inline": True},
+                            {"name": "Prompt", "value": f"{prompt}", "inline": False},
+                            {"name": "Negative Prompt", "value": f"{negative_prompt}", "inline": False},
+                        ],
+                    }
+                )
+                embed.set_image(file=image_file)
+                await interaction.edit_original_response(content="", embed=embed)
+            else:
+                await interaction.edit_original_response(content="", file=image_file)
 
     @commands.command(name="generate")
     async def GenerateCTX(self, ctx: commands.Context):
