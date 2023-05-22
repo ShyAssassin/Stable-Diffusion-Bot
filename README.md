@@ -29,6 +29,15 @@ after completing the installation steps and editing the .env file to add you dis
 ### Nothing is generated but my GPU is at 100%
 This is generally because you are generating too many images at once, try turning down `batch_size` and `images_per_prompt` in the config file.
 
+### The Generated image does not look good
+If the Generated image does not look good try adjusting the provided prompts and negative prompts or the `guidance_scale` / `sample_steps` in the config. if you are still not happy you can use a custom model by change `current_model` in the config.
+
+### Generated Images look corrupted
+If the Generated Images looks corrupted this is generally because you have too many or too few `sample_steps`, try messing around with the amount of `sample_steps` until the images look clear again.
+
+### The Generated image contains "mutated" elements
+If The Generated image contains mutated elements (extra arms, too many fingers, long necks, etc...) try adjusting the negative prompts provided or add base `negative_prompts` in the config.
+
 ### When i start the bot i get import errors
 This is generally because you forgot to run `poetry install`, if you did run the install command and you are still encountering errors please [open a bug report!](https://github.com/ShyAssassin/Stable-Diffusion-Bot/issues/new)
 
