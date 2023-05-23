@@ -29,6 +29,7 @@ class Text2Img(commands.Cog):
         # setup pipelines
         self.pipelines = []
         self.queue_size = 0
+        print("Loading pipelines")
         for _ in range(self.batch_size):
             pipeline = StableDiffusionPipeline.from_pretrained(
                 pretrained_model_name_or_path=self.model_id,
@@ -38,7 +39,7 @@ class Text2Img(commands.Cog):
                 custom_revision=self.config.custom_pipeline_revision,
             )
             pipeline.safety_checker = self.safety_checker
-            # we set the scheduler to DPM++ because it is faster and better than the dedault scheduler PNDM
+            # we set the scheduler to DPM++ because it is much faster and better than the default scheduler PNDM
             pipeline.scheduler = DPMSolverMultistepScheduler.from_config(pipeline.scheduler.config, use_karras_sigmas=False)
             pipeline.to(self.config.device)
             self.pipelines.append(pipeline)
