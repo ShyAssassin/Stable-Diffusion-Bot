@@ -3,9 +3,23 @@ import os
 from pydantic import BaseModel, ValidationError, validate_model, validator
 
 
+class Model(BaseModel):
+    name: str
+    id: str
+    # currently `local` is useless because the pip version of diffusers does not have local safetensor support yet
+    # TODO: when the safetensor support is merged upstream add support for local models
+    local: bool
+
+    @validator("id")
+    def id_valid(cls, v):
+        if v == None or v == "":
+            raise ValueError("Model ID's must be defined")
+        return v
+
+
 class Text2ImgConfig(BaseModel):
     device: str = "cuda"
-    current_model: str = "andite/anything-v4.0"
+    model: Model = Model(name="anything-v4.0", id="andite/anything-v4.0", local=False)
     custom_pipeline: str = "lpw_stable_diffusion"
     custom_pipeline_revision: str = "0.15.1"
     width: int = 512
@@ -35,12 +49,6 @@ class Text2ImgConfig(BaseModel):
             raise ValueError("Images per prompt must be greater than 0")
         return v
 
-    @validator("current_model")
-    def model_valid(cls, v):
-        if v == "":
-            raise ValueError("A valid model must be defined")
-        return v
-
     @validator("batch_size")
     def batchsize_valid(cls, v):
         if v < 1:
@@ -65,10 +73,22 @@ class SDBConfig(BaseModel):
     debug: bool = False
     save_images: bool = False
     command_prefix: str = "*"
-    available_models: list[str] = [
-        "andite/anything-v4.0",
-        "CompVis/stable-diffusion-v1-4",
-        "runwayml/stable-diffusion-v1-5",
+    models: list[Model] = [
+        Model(
+            name="anything-v4.0",
+            id="andite/anything-v4.0",
+            local=False,
+        ),
+        Model(
+            name="stable-diffusion-v1-4",
+            id="CompVis/stable-diffusion-v1-4",
+            local=False,
+        ),
+        Model(
+            name="stable-diffusion-v1-5",
+            id="runwayml/stable-diffusion-v1-5",
+            local=False,
+        ),
     ]
     Text2Img: Text2ImgConfig = Text2ImgConfig()
 
@@ -76,7 +96,7 @@ class SDBConfig(BaseModel):
         with open(file, "w") as f:
             json.dump(obj=self.dict(), fp=f, indent=4)
 
-    def load(self, file: str = "config.json") -> None:
+    def load(self, file: str = "config.json"):
         if not os.path.exists(file):
             print("config file not found, creating one")
             self.save(file)

@@ -3,7 +3,7 @@ from disnake.ext import commands
 from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 import torch
 import random
-from Core import make_collage, SDB, Text2ImgConfig, SDBConfig
+from Core import make_collage, SDB, Text2ImgConfig
 import math
 import io
 import os
@@ -13,31 +13,19 @@ import asyncio
 class Text2Img(commands.Cog):
     def __init__(self, bot: SDB):
         self.bot: SDB = bot
-        self.base_config: SDBConfig = self.bot.config
-        self.config: Text2ImgConfig = self.base_config.Text2Img
-        # config stuff
-        self.model_id = self.config.current_model
-        self.width = self.config.width
-        self.height = self.config.height
-        self.sample_steps = self.config.sample_steps
-        self.batch_size = self.config.batch_size
-        self.guidance_scale = self.config.guidance_scale
-        self.images_per_prompt = self.config.images_per_prompt
-        self.negative_prompts = ", ".join(self.config.negative_prompts)
-        self.base_prompts = ", ".join(self.config.base_prompts)
-        self.banned_prompts = self.config.banned_prompts
-        # setup pipelines
-        self.pipelines = []
+        self.config: Text2ImgConfig = self.bot.config.Text2Img
+        self.pipelines: list[StableDiffusionPipeline] = []
+        self.configure_pipelines()
         self.queue_size = 0
-        print("Loading pipelines")
-        for _ in range(self.batch_size):
-            pipeline = StableDiffusionPipeline.from_pretrained(
-                pretrained_model_name_or_path=self.model_id,
+
+    def configure_pipelines(self):
+        for _ in range(self.config.batch_size):
+            pipeline: StableDiffusionPipeline = StableDiffusionPipeline.from_pretrained(
+                pretrained_model_name_or_path=self.config.model.id,
                 torch_dtype=torch.float16,
-                resume_download=True,
                 custom_pipeline=self.config.custom_pipeline,
                 custom_revision=self.config.custom_pipeline_revision,
-            )
+            )  # type: ignore
             pipeline.safety_checker = self.safety_checker
             # we set the scheduler to DPM++ because it is much faster and better than the default scheduler PNDM
             pipeline.scheduler = DPMSolverMultistepScheduler.from_config(pipeline.scheduler.config, use_karras_sigmas=False)
@@ -57,36 +45,36 @@ class Text2Img(commands.Cog):
             images += pipeline(
                 prompt,
                 generator=generator,
-                width=self.width,
-                height=self.height,
-                guidance_scale=self.guidance_scale,
+                width=self.config.width,
+                height=self.config.height,
+                guidance_scale=self.config.guidance_scale,
                 negative_prompt=negative_prompt,
-                num_inference_steps=self.sample_steps,
-                num_images_per_prompt=self.images_per_prompt,
-            ).images
+                num_inference_steps=self.config.sample_steps,
+                num_images_per_prompt=self.config.images_per_prompt,
+            ).images  # type: ignore
             self.pipelines.append(pipeline)
             self.queue_size -= 1
         except IndexError:  # two threads tried to pop the same pipeline
             return
 
     @commands.slash_command(name="generate", description="generate a image using provided prompts")
-    async def Generate(self, interaction: disnake.CommandInteraction, prompt: str, negative_prompt: str = None, seed: int = None):
+    async def Generate(self, interaction: disnake.CommandInteraction, prompt: str, negative_prompt: str = "", seed: int = -1):
         await interaction.response.defer(ephemeral=False)
 
         # if we have a base prompt we should add it to the provided prompt
-        if self.base_prompts != "":
-            prompt = f"{self.base_prompts}, {prompt}"
+        if self.config.base_prompts != []:
+            prompt = f"{str(self.config.base_prompts)}, {prompt}"
 
         # if the user provided negative prompts we should add them to the list of negative prompts
         # if the user didn't provide any negative prompts we should just use the default negative prompts
-        if negative_prompt is not None and self.negative_prompts != "":
-            negative_prompt = f"{self.negative_prompts}, {negative_prompt}"
-        elif self.negative_prompts != "":
-            negative_prompt = self.negative_prompts
+        if negative_prompt != "" and self.config.negative_prompts != "":
+            negative_prompt = f"{self.config.negative_prompts}, {negative_prompt}"
+        elif self.config.negative_prompts != "":
+            negative_prompt = ", ".join(self.config.negative_prompts)
 
         # search for banned prompts
-        if self.banned_prompts != "":
-            for banned_prompt in self.banned_prompts:
+        if self.config.banned_prompts != "":
+            for banned_prompt in self.config.banned_prompts:
                 if banned_prompt in prompt.lower():
                     await interaction.edit_original_message(content=f"Error: banned prompt '{banned_prompt}' found in input")
                     return
@@ -96,7 +84,7 @@ class Text2Img(commands.Cog):
             if self.pipelines != []:
                 await interaction.edit_original_message(content="Generating...")
 
-                if seed is None:  # probably shouldn't regenerate the seed every time we fail to get a pipeline
+                if seed < 0:
                     seed = random.randint(0, 2**32)  # should we use 64 bit seeds?
 
                 # generate images in a asyncio thread so we don't block the event loop
@@ -124,7 +112,7 @@ class Text2Img(commands.Cog):
         else:
             image = images[0]
 
-        if self.base_config.save_images:
+        if self.bot.config.save_images:
             os.makedirs(f"cache/{interaction.guild_id}", exist_ok=True)
             image.save(f"cache/{interaction.guild_id}/{interaction.id}.png")
 
@@ -132,19 +120,19 @@ class Text2Img(commands.Cog):
             image.save(image_binary, "PNG")
             image_binary.seek(0)
             image_file = disnake.File(fp=image_binary, filename=f"{interaction.id}.png")
-            if self.base_config.debug:
+            if self.bot.config.debug:
                 embed = disnake.Embed.from_dict(
                     {
                         "title": "Debug Info",
                         "color": 0xFF00AA,
                         "timestamp": interaction.created_at.isoformat(),
                         "fields": [
-                            {"name": "Model", "value": f"{self.model_id}", "inline": False},
+                            {"name": "Model", "value": f"{self.config.model.name}", "inline": False},
                             {"name": "Seed", "value": f"{seed}", "inline": True},
-                            {"name": "Sample Steps", "value": f"{self.sample_steps}", "inline": True},
-                            {"name": "Guidance Scale", "value": f"{self.guidance_scale}", "inline": True},
-                            {"name": "Batch Size", "value": f"{self.batch_size}", "inline": True},
-                            {"name": "IPP", "value": f"{self.images_per_prompt}", "inline": True},
+                            {"name": "Sample Steps", "value": f"{self.config.sample_steps}", "inline": True},
+                            {"name": "Guidance Scale", "value": f"{self.config.guidance_scale}", "inline": True},
+                            {"name": "Batch Size", "value": f"{self.config.batch_size}", "inline": True},
+                            {"name": "IPP", "value": f"{self.config.images_per_prompt}", "inline": True},
                             {"name": "Device", "value": f"{self.config.device}", "inline": True},
                             {"name": "Prompt", "value": f"{prompt}", "inline": False},
                             {"name": "Negative Prompt", "value": f"{negative_prompt}", "inline": False},
