@@ -15,10 +15,11 @@ class Reload(commands.Cog):
         await interaction.edit_original_message(content="Reloading pipelines, this may take a while...")
         # update config with the latest changes
         self.bot.config.load()
+        # reload all cogs, this will regenerate all pipelines
         for cog in os.listdir(self.bot.CogPath):
             if not cog.startswith("_") and cog.endswith(".py") and cog != "reload.py":
                 CurrentCogPath = str(os.path.join(self.bot.CogPath, cog))
-                CurrentCogModule = CurrentCogPath.replace("\\", ".")[:-3]
+                CurrentCogModule = CurrentCogPath.replace(os.path.sep, ".")[:-3]
                 print(f"Reloading Extension: sdb.{CurrentCogModule}")
                 self.bot.reload_extension(CurrentCogModule)
         await interaction.edit_original_message(content="All pipelines have been reloaded!")

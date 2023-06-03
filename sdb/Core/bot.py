@@ -33,8 +33,7 @@ class SDB(commands.Bot):
             for cog in os.listdir(self.CogPath):
                 if not cog.startswith("_") and cog.endswith(".py"):
                     CurrentCogPath = str(os.path.join(self.CogPath, cog))
-                    # TODO: this doesn't work on linux because linux uses / instead of \
-                    CurrentCogModule = CurrentCogPath.replace("\\", ".")[:-3]
+                    CurrentCogModule = CurrentCogPath.replace(os.path.sep, ".")[:-3]
                     self.load_extension(CurrentCogModule)
                     print(f"Loaded Extension: sdb.{CurrentCogModule}")
             print("All Extension Loaded!")
