@@ -64,12 +64,11 @@ class Text2Img(commands.Cog):
         # if we have a base prompt we should add it to the provided prompt
         if self.config.base_prompts != []:
             prompt = f"{str(self.config.base_prompts)}, {prompt}"
-
-        # if the user provided negative prompts we should add them to the list of negative prompts
-        # if the user didn't provide any negative prompts we should just use the default negative prompts
-        if negative_prompt != "" and self.config.negative_prompts != "":
-            negative_prompt = f"{self.config.negative_prompts}, {negative_prompt}"
-        elif self.config.negative_prompts != "":
+    
+        # there are base negative prompts, append user provided negative prompts
+        if negative_prompt and self.config.negative_prompts:  
+            negative_prompt = f"{', '.join(self.config.negative_prompts)}, {negative_prompt}"
+        elif self.config.negative_prompts:  # User didn't provide negative prompts, use base negative prompts
             negative_prompt = ", ".join(self.config.negative_prompts)
 
         # search for banned prompts
