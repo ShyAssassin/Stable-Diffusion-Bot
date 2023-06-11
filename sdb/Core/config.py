@@ -25,7 +25,7 @@ class Text2ImgConfig(BaseModel):
     width: int = 512
     height: int = 512
     batch_size: int = 3
-    sample_steps: int = 50
+    sample_steps: int = 35
     guidance_scale: int = 7
     images_per_prompt: int = 1
     safety_checker: bool = True
