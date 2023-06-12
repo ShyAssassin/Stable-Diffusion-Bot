@@ -48,7 +48,7 @@ If the Generated Images looks corrupted this is generally because you have too m
 If The Generated image contains mutated elements (extra arms, too many fingers, long necks, etc...) try adjusting the negative prompts provided or add base `negative_prompts` in the config.
 
 ### The Img2Img output image looks nothing like the input
-This is expected because Img2Img uses the provided input image as a "base" for further generation [Read This for more info.](https://arxiv.org/pdf/2108.01073.pdf)      
+This is expected because Img2Img uses the provided input image as a "base" for further generation [Read This for more info.](https://arxiv.org/pdf/2108.01073.pdf)
 Try adjusting the `stength` paramater provided when using the command or edit the base strength in the config. The higher the `strength` the more the "creative" the AI gets.
 
 ### When i start the bot i get import errors
