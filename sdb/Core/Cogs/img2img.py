@@ -75,6 +75,11 @@ class Img2Img(commands.Cog):
 
         await interaction.response.defer(ephemeral=False)
 
+        # Im dumb, make sure the image is a png
+        if image.content_type != "image/png" and image.content_type != "image/jpeg":
+            await interaction.edit_original_message(content="Error: input must be an image!")
+            return
+
         # stength must be between 0 and 1
         if strength == -1:
             strength = self.config.strength
