@@ -1,10 +1,11 @@
 import os
 
-# we load all cogs assuming we are in the sdb root directory but if we aren't we get nasty errors
-# because cogs are loaded relative to the current working directory,
-# so we just change directory to sdb if we aren't already in it
-if os.pardir != "sdb":
-    os.chdir("sdb")
+# change working directory to the root of the project
+# yea yea yea i know i should make sdb a package so we can use relative imports
+# but i'm lazy and this works for now
+if os.pardir != os.path.dirname(__file__):
+    os.chdir(os.path.dirname(__file__))
+
 from Core.bot import SDB
 from dotenv import load_dotenv
 
