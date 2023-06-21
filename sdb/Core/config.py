@@ -20,7 +20,7 @@ class Model(BaseModel):
 class BasePipelineConfig(BaseModel):
     enabled: bool = True
     device: str = "cuda"
-    model: Model = Model(name="anything-v4.0", id="andite/anything-v4.0", local=False)
+    model: Model = Model(name="anything-v4.5", id="ckpt/anything-v4.5-vae-swapped", local=False)
     width: int = 512
     height: int = 512
     batch_size: int = 2
@@ -78,7 +78,7 @@ class BasePipelineConfig(BaseModel):
 
 class Text2ImgConfig(BasePipelineConfig):
     device: str = "cuda"
-    model: Model = Model(name="anything-v4.0", id="andite/anything-v4.0", local=False)
+    model: Model = Model(name="anything-v4.5", id="ckpt/anything-v4.5-vae-swapped", local=False)
     custom_pipeline: str = "lpw_stable_diffusion"
     custom_pipeline_revision: str = "0.15.1"
     stack_horizontally: bool = True
