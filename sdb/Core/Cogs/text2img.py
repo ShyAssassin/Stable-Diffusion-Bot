@@ -39,7 +39,7 @@ class Text2Img(commands.Cog):
             print("!!! Safety Checker is currently not implemented !!!")
         return images, False
 
-    def generate_images(self, prompt, negative_prompt, images, seed, width, height):
+    def generate_images(self, prompt, negative_prompt, images, seed, width, height, num_inference_steps):
         try:
             pipeline = self.pipelines.pop()
             generator = torch.Generator(device=self.config.device).manual_seed(seed)
@@ -50,7 +50,7 @@ class Text2Img(commands.Cog):
                 height=height,
                 negative_prompt=negative_prompt,
                 guidance_scale=self.config.guidance_scale,
-                num_inference_steps=self.config.sample_steps,
+                num_inference_steps=num_inference_steps,
                 num_images_per_prompt=self.config.images_per_prompt,
             ).images  # type: ignore
             self.pipelines.append(pipeline)
@@ -69,6 +69,7 @@ class Text2Img(commands.Cog):
         seed: int = -1,
         width: int = 512,
         height: int = 512,
+        num_inference_steps: int = 50,
     ):
         if not self.config.enabled:
             await interaction.response.defer(ephemeral=True)
@@ -102,7 +103,7 @@ class Text2Img(commands.Cog):
 
                 # generate images in a asyncio thread so we don't block the event loop
                 images = []
-                await asyncio.to_thread(self.generate_images, prompt, negative_prompt, images, seed, width, height)
+                await asyncio.to_thread(self.generate_images, prompt, negative_prompt, images, seed, width, height, num_inference_steps)
 
                 # no images were generated, try again
                 if len(images) > 0:
@@ -141,7 +142,7 @@ class Text2Img(commands.Cog):
                         "fields": [
                             {"name": "Model", "value": f"{self.config.model.name}", "inline": False},
                             {"name": "Seed", "value": f"{seed}", "inline": True},
-                            {"name": "Sample Steps", "value": f"{self.config.sample_steps}", "inline": True},
+                            {"name": "Sample Steps", "value": f"{num_inference_steps}", "inline": True},
                             {"name": "Guidance Scale", "value": f"{self.config.guidance_scale}", "inline": True},
                             {"name": "Batch Size", "value": f"{self.config.batch_size}", "inline": True},
                             {"name": "IPP", "value": f"{self.config.images_per_prompt}", "inline": True},
