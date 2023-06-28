@@ -16,10 +16,10 @@ class Generate(commands.Cog):
         pass
 
     @Generate.sub_command(name="text2img", description="Generate a image from a image")
-    async def text2img(self, interaction: disnake.CommandInteraction, prompt: str, negative_prompt: str = "", seed: int = -1):
+    async def text2img(self, interaction: disnake.CommandInteraction, prompt: str, negative_prompt: str = "", seed: int = -1, width = 512, height = 512):
         try:
             cog: Text2Img = self.bot.get_cog("Text2Img")  # type: ignore
-            await cog.text2img(interaction=interaction, prompt=prompt, negative_prompt=negative_prompt, seed=seed)
+            await cog.text2img(interaction=interaction, prompt=prompt, negative_prompt=negative_prompt, seed=seed, width=width, height=height)
         except AttributeError:
             await interaction.response.defer(ephemeral=True)
             await interaction.response.send_message("This command is not available right now", ephemeral=True)
