@@ -23,8 +23,8 @@ class BasePipelineConfig(BaseModel):
     model: Model = Model(name="anything-v4.5", id="ckpt/anything-v4.5-vae-swapped", local=False)
     width: int = 512
     height: int = 512
-    batch_size: int = 2
-    sample_steps: int = 35
+    batch_size: int = 1
+    num_inference_steps: int = 50
     guidance_scale: float = 7
     images_per_prompt: int = 1
     safety_checker: bool = True
@@ -57,8 +57,8 @@ class BasePipelineConfig(BaseModel):
             raise ValueError("Device must be either cuda or cpu")
         return v
 
-    @validator("sample_steps")
-    def sample_steps_valid(cls, v):
+    @validator("num_inference_steps")
+    def num_inference_steps_valid(cls, v):
         if v < 1:
             raise ValueError("Sample steps must be greater than 0")
         return v

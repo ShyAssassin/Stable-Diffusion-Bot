@@ -48,7 +48,7 @@ class Img2Img(commands.Cog):
                 generator=generator,
                 negative_prompt=negative_prompt,
                 guidance_scale=self.config.guidance_scale,
-                num_inference_steps=self.config.sample_steps,
+                num_inference_steps=self.config.num_inference_steps,
                 num_images_per_prompt=self.config.images_per_prompt,
             ).images  # type: ignore
             self.pipelines.append(pipeline)

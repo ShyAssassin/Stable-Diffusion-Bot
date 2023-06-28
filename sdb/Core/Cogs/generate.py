@@ -16,10 +16,19 @@ class Generate(commands.Cog):
         pass
 
     @Generate.sub_command(name="text2img", description="Generate a image from a image")
-    async def text2img(self, interaction: disnake.CommandInteraction, prompt: str, negative_prompt: str = "", seed: int = -1):
+    async def text2img(
+        self,
+        interaction: disnake.CommandInteraction,
+        prompt: str,
+        negative_prompt: str = "",
+        seed: int = -1,
+        width = 512,
+        height = 512,
+        num_inference_steps = 50,
+    ):
         try:
             cog: Text2Img = self.bot.get_cog("Text2Img")  # type: ignore
-            await cog.text2img(interaction=interaction, prompt=prompt, negative_prompt=negative_prompt, seed=seed)
+            await cog.text2img(interaction=interaction, prompt=prompt, negative_prompt=negative_prompt, seed=seed, width=width, height=height, num_inference_steps=num_inference_steps)
         except AttributeError:
             await interaction.response.defer(ephemeral=True)
             await interaction.response.send_message("This command is not available right now", ephemeral=True)
@@ -37,9 +46,7 @@ class Generate(commands.Cog):
     ):
         try:
             cog: Img2Img = self.bot.get_cog("Img2Img")  # type: ignore
-            await cog.img2img(
-                interaction=interaction, image=image, strength=strength, prompt=prompt, negative_prompt=negative_prompt, seed=seed
-            )
+            await cog.img2img(interaction=interaction, image=image, strength=strength, prompt=prompt, negative_prompt=negative_prompt, seed=seed)
         except AttributeError:
             await interaction.response.defer(ephemeral=True)
             await interaction.response.send_message("This command is not available right now", ephemeral=True)
