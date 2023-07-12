@@ -24,7 +24,7 @@ class BasePipelineConfig(BaseModel):
     width: int = 512
     height: int = 512
     batch_size: int = 1
-    num_inference_steps: int = 50
+    num_inference_steps: int = 35
     guidance_scale: float = 7
     images_per_prompt: int = 1
     safety_checker: bool = True
