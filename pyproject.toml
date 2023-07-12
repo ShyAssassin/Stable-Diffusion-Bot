@@ -20,12 +20,7 @@ huggingface-hub = "^0.14.1"
 [[tool.poetry.source]]
 name = "torch"
 url = "https://download.pytorch.org/whl/cu117"
-priority = "secondary"
-
-
-[[tool.poetry.source]]
-name = "PyPI"
-priority = "primary"
+priority = "explicit"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
