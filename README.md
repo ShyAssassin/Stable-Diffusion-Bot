@@ -20,7 +20,7 @@
 ### Prerequisites
 * Python 3.10 or above
 * Cuda 11.7 or above
-* [poetry](https://python-poetry.org/)
+* [poetry](https://python-poetry.org/) 3.15 or above
 
 ```bash
 git clone https://github.com/ShyAssassin/Stable-Diffusion-Bot.git
