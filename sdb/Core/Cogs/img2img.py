@@ -58,6 +58,7 @@ class Img2Img(commands.Cog):
         except (RuntimeError, IndexError):
             return
 
+    @commands.guild_only()
     @commands.slash_command(name="img2img", description="Generate a image from a image")
     async def img2img(
         self,
